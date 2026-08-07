@@ -16,9 +16,14 @@ describe('MCP Remote E2E', () => {
     client = await createMCPClient('https://huggingface.co/mcp')
     const tools = await listTools(client.client)
     const toolNames = tools.map((t) => t.name)
+    // What this test is for is the transport: that we can reach a live remote
+    // server and enumerate its tools. Asserting a vendor's full tool list
+    // snapshots their product decisions instead - this suite broke when
+    // Hugging Face renamed model_search/dataset_search to hub_repo_search and
+    // hub_repo_details, which said nothing about this proxy. So: one stable
+    // anchor, and a shape check.
     expect(toolNames).toContain('hf_whoami')
-    expect(toolNames).toContain('model_search')
-    expect(toolNames).toContain('dataset_search')
+    expect(toolNames.length).toBeGreaterThan(1)
   }, 30000)
 
   it('connects to Cloudflare docs MCP server', async () => {
