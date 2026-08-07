@@ -1,6 +1,6 @@
 {
   "name": "@p404/mcp-remote",
-  "version": "0.1.38-p404.1",
+  "version": "0.1.38",
   "description": "Remote proxy for Model Context Protocol, allowing local-only clients to connect to remote servers using oAuth (fork: honours an empty scopes_supported so servers advertising no scopes authenticate)",
   "keywords": [
     "mcp",
