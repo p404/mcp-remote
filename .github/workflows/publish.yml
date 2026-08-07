@@ -30,9 +30,9 @@ jobs:
           # Trusted publishing needs npm >= 11.5.1, and current npm requires
           # Node >= 22.22.2 / >= 24.15.0, so track the 24 LTS line.
           node-version: '24'
-          # Deliberately no registry-url: it makes setup-node write an .npmrc
-          # line referencing NODE_AUTH_TOKEN, which expands to empty here and
-          # can shadow the OIDC credential the CLI would otherwise use.
+          # Required: npm resolves the OIDC audience from the configured
+          # registry, so setup-node must write it into .npmrc.
+          registry-url: 'https://registry.npmjs.org'
 
       # Ensure an npm new enough to authenticate over OIDC.
       - run: npm install -g npm@latest
