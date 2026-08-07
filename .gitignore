@@ -1,3 +1,6 @@
 node_modules
 .mcp-cli
 dist
+node_modules/
+dist/
+package-lock.json
