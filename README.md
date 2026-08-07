@@ -1,4 +1,4 @@
-# @p404/mcp-remote
+# @p404c/mcp-remote
 
 > Fork of [`geelen/mcp-remote`](https://github.com/geelen/mcp-remote) that
 > honours an empty `scopes_supported`, so MCP servers advertising no OAuth
@@ -40,8 +40,13 @@ scope and connects unchanged.
 
 ## Usage
 
-Straight from this repo — it builds itself on install, so no registry is
-involved:
+From npm:
+
+```sh
+npx -y @p404c/mcp-remote https://mcp.datadoghq.com/v1/mcp
+```
+
+Or straight from this repo, which builds itself on install:
 
 ```sh
 npx -y github:p404/mcp-remote https://mcp.datadoghq.com/v1/mcp
@@ -54,7 +59,7 @@ In an MCP client's `mcp.json`:
   "mcpServers": {
     "datadog": {
       "command": "npx",
-      "args": ["-y", "github:p404/mcp-remote", "https://mcp.datadoghq.com/v1/mcp"]
+      "args": ["-y", "@p404c/mcp-remote", "https://mcp.datadoghq.com/v1/mcp"]
     }
   }
 }
