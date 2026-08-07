@@ -30,7 +30,9 @@ jobs:
       # Ensure an npm new enough to authenticate over OIDC.
       - run: npm install -g npm@latest
 
-      - run: npm ci
+      # No package-lock.json is committed (upstream uses pnpm), so `npm ci`
+      # has nothing to install from.
+      - run: npm install --no-audit --no-fund
 
       # Fail loudly if the tag and package.json disagree, rather than
       # publishing a version nobody asked for.
