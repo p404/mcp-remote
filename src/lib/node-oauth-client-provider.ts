@@ -113,6 +113,19 @@ export class NodeOAuthClientProvider implements OAuthClientProvider {
       return this.staticOAuthClientMetadata.scope
     }
 
+    // Priority 1b: An authorization server that advertises an *empty*
+    // scopes_supported is stating it supports no scopes at all. That is
+    // authoritative and must beat any scope cached from an earlier client
+    // registration (Priority 4), which would otherwise keep replaying a scope
+    // the server rejects. Returning '' makes the SDK omit the scope parameter
+    // entirely (it guards with `if (scope)`); sending `scope=` empty is itself
+    // rejected as invalid_request by such servers.
+    const advertised = this.authorizationServerMetadata?.scopes_supported
+    if (Array.isArray(advertised) && advertised.length === 0) {
+      debugLog('Authorization server advertises no scopes; omitting scope')
+      return ''
+    }
+
     // Priority 2: Scope from WWW-Authenticate header (per MCP spec)
     if (this.wwwAuthenticateScope && this.wwwAuthenticateScope.trim().length > 0) {
       debugLog('Using scope from WWW-Authenticate header', { scope: this.wwwAuthenticateScope })
@@ -135,8 +148,13 @@ export class NodeOAuthClientProvider implements OAuthClientProvider {
       return this._clientInfo.scope
     }
 
-    // Priority 5: Use authorization server's supported scopes if available
-    if (this.authorizationServerMetadata?.scopes_supported?.length) {
+    // Priority 5: Use authorization server's supported scopes if available.
+    // A present-but-empty scopes_supported is authoritative, not missing: the
+    // server is saying it supports no scopes. Returning '' makes the SDK omit
+    // the scope parameter entirely (it guards with `if (scope)`), which is what
+    // such servers require - requesting any scope is rejected with
+    // invalid_scope, and sending `scope=` empty is rejected as invalid_request.
+    if (this.authorizationServerMetadata?.scopes_supported) {
       const scope = this.authorizationServerMetadata.scopes_supported.join(' ')
       debugLog('Using scopes from Authorization Server Metadata', {
         scopes_supported: this.authorizationServerMetadata.scopes_supported,
@@ -263,8 +281,15 @@ export class NodeOAuthClientProvider implements OAuthClientProvider {
     }
 
     const effectiveScope = this.getEffectiveScope()
-    authorizationUrl.searchParams.set('scope', effectiveScope)
-    debugLog('Added scope parameter to authorization URL', { scopes: effectiveScope })
+    if (effectiveScope) {
+      authorizationUrl.searchParams.set('scope', effectiveScope)
+      debugLog('Added scope parameter to authorization URL', { scopes: effectiveScope })
+    } else {
+      // An empty scope must be omitted, not sent as `scope=`: servers that
+      // support no scopes reject the empty parameter as invalid_request.
+      authorizationUrl.searchParams.delete('scope')
+      debugLog('No effective scope; omitting scope parameter')
+    }
 
     log(`\nPlease authorize this client by visiting:\n${authorizationUrl.toString()}\n`)
 
