@@ -36,6 +36,9 @@ jobs:
 
       # Ensure an npm new enough to authenticate over OIDC.
       - run: npm install -g npm@latest
+      # Surface what actually ran: OIDC needs npm >= 11.5.1, and a silent
+      # fallback to an older npm looks exactly like a missing trusted publisher.
+      - run: node -v && npm -v && npm config get registry
 
       # No package-lock.json is committed (upstream uses pnpm), so `npm ci`
       # has nothing to install from.
