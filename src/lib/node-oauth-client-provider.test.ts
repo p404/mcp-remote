@@ -218,6 +218,47 @@ describe('NodeOAuthClientProvider - OAuth Scope Handling', () => {
       expect(clientMetadata.scope).toBe('custom:read custom:write special:scope')
     })
 
+    it('should request no scope when scopes_supported is empty and none is requested', () => {
+      // A server advertising an empty scopes_supported supports no scopes at
+      // all. Requesting any is rejected with invalid_scope.
+      provider = new NodeOAuthClientProvider({
+        ...defaultOptions,
+        authorizationServerMetadata: {
+          issuer: 'https://example.com',
+          scopes_supported: [],
+        } as AuthorizationServerMetadata,
+      })
+
+      expect(provider.clientMetadata.scope).toBe('')
+    })
+
+    it('should not replay a registration scope when scopes_supported is empty', () => {
+      // The trap: a scope cached from an earlier client registration would
+      // otherwise keep being sent to a server that has already rejected it.
+      provider = new NodeOAuthClientProvider({
+        ...defaultOptions,
+        authorizationServerMetadata: {
+          issuer: 'https://example.com',
+          scopes_supported: [],
+        } as AuthorizationServerMetadata,
+      })
+      ;(provider as any)._clientInfo = { scope: 'openid email profile' }
+
+      expect(provider.clientMetadata.scope).toBe('')
+    })
+
+    it('should still use the default when scopes_supported is absent', () => {
+      // Absent means "no information" - unlike empty, which is authoritative.
+      provider = new NodeOAuthClientProvider({
+        ...defaultOptions,
+        authorizationServerMetadata: {
+          issuer: 'https://example.com',
+        } as AuthorizationServerMetadata,
+      })
+
+      expect(provider.clientMetadata.scope).toBe('openid email profile')
+    })
+
     it('should use scopes when scopes_supported is empty', () => {
       const metadata: AuthorizationServerMetadata = {
         issuer: 'https://example.com',
