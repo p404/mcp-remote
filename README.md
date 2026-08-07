@@ -1,3 +1,75 @@
+# @p404/mcp-remote
+
+> Fork of [`geelen/mcp-remote`](https://github.com/geelen/mcp-remote) that
+> honours an empty `scopes_supported`, so MCP servers advertising no OAuth
+> scopes (Datadog, for one) can actually authenticate.
+
+## Why this fork exists
+
+A server whose `/.well-known/oauth-authorization-server` returns
+`"scopes_supported": []` is stating it supports **no** scopes. Upstream treats
+that as "no information" and requests `openid email profile` anyway, so
+authorization fails:
+
+```
+error=invalid_scope
+error_description=The following scopes are not authorized for this OAuth
+  client: email openid profile
+```
+
+Users only ever see `Error: No authorization code received` — nothing mentions
+scopes, which makes it painful to diagnose.
+
+Two changes fix it:
+
+1. **`getEffectiveScope()`** consulted `scopes_supported` only when non-empty
+   (`?.length`), so an empty array fell through to a hardcoded default. The
+   check is now authoritative and sits *ahead* of the client-registration scope,
+   which would otherwise replay a scope the server has already rejected.
+2. **`getAuthorizationUrl()`** set the parameter unconditionally, producing
+   `scope=` — which such servers reject differently again (Datadog answers
+   `invalid_request - Unable to parse query string`). It is now omitted when the
+   effective scope is empty, matching the MCP SDK's own behaviour.
+
+Servers that omit `scopes_supported` entirely are unaffected and still receive
+the default.
+
+Verified against the live endpoints: Datadog's authorization URL now carries no
+scope parameter and the flow completes, while Linear continues to send its own
+scope and connects unchanged.
+
+## Usage
+
+Straight from this repo — it builds itself on install, so no registry is
+involved:
+
+```sh
+npx -y github:p404/mcp-remote https://mcp.datadoghq.com/v1/mcp
+```
+
+In an MCP client's `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "datadog": {
+      "command": "npx",
+      "args": ["-y", "github:p404/mcp-remote", "https://mcp.datadoghq.com/v1/mcp"]
+    }
+  }
+}
+```
+
+Pin to a commit for reproducible installs: `github:p404/mcp-remote#<sha>`.
+
+The fix is on `fix/empty-scopes-supported` and is intended to go upstream; if it
+lands there, use the upstream package instead of this fork.
+
+---
+
+<details>
+<summary>Upstream README</summary>
+
 # `mcp-remote`
 
 Connect an MCP Client that only supports local (stdio) servers to a Remote MCP Server, with auth support:
@@ -398,3 +470,6 @@ npx -p mcp-remote@latest mcp-remote-client https://remote.mcp.server/sse
 ```
 
 This will run through the entire authorization flow and attempt to list the tools & resources at the remote URL. Try this after running `rm -rf ~/.mcp-auth` to see if stale credentials are your problem, otherwise hopefully the issue will be more obvious in these logs than those in your MCP client.
+
+
+</details>
