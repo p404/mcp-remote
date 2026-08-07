@@ -10,6 +10,11 @@ on:
     tags:
       - 'v*'
 
+# One publish at a time; two tags pushed together must not race.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
 permissions:
   contents: read
   id-token: write # required for OIDC
@@ -18,14 +23,16 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           # Trusted publishing needs npm >= 11.5.1, and current npm requires
           # Node >= 22.22.2 / >= 24.15.0, so track the 24 LTS line.
           node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
+          # Deliberately no registry-url: it makes setup-node write an .npmrc
+          # line referencing NODE_AUTH_TOKEN, which expands to empty here and
+          # can shadow the OIDC credential the CLI would otherwise use.
 
       # Ensure an npm new enough to authenticate over OIDC.
       - run: npm install -g npm@latest
